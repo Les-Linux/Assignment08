@@ -20,7 +20,7 @@ public class ListOfNumbers {
         ExecutorService executorServiceIO = Executors.newCachedThreadPool();
         Assignment8 assignment8 = new Assignment8();
 
-
+        // ASSISTANCE NEEDED HERE
         for (int i = 0; i < 10; i++) {
 /*        CompletableFuture<List<Integer>> cf = CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
                 .thenApplyAsync(Assignment8::getNumbers);*/
