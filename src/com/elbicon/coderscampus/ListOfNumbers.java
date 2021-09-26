@@ -10,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import static java.lang.Thread.sleep;
 
 public class ListOfNumbers {
     TaskDto taskDto = new TaskDto();
