@@ -1,6 +1,7 @@
 package com.elbicon.coderscampus;
 
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,18 +19,28 @@ public class ListOfNumbers {
         ExecutorService executorServiceCPU = Executors.newFixedThreadPool(1);
         ExecutorService executorServiceIO = Executors.newCachedThreadPool();
         Assignment8 assignment8 = new Assignment8();
-        CompletableFuture<List<Integer>> cf = null;
-        int count = 0;
+        CompletableFuture<List<Integer>> cf = new CompletableFuture<>();
         int numbersMaxCount = 2;
+
         for (int i = 0; i < numbersMaxCount; i++) {
-          count++;
-          CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
+            CompletableFuture.allOf(
+                CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
+                        .thenApplyAsync(Assignment8::getNumbers)
+                        .thenAcceptAsync(dto ->{
+                            this.addNumbersToList(dto.stream().map(m -> m.intValue()).collect(Collectors.toList()));
+                        })
+                ).join();
+        } //end for
+        outputToConsole();
+/*        for (int i = 0; i < numbersMaxCount; i++) {
+          cf.supplyAsync(() -> assignment8, executorServiceIO)
                     .thenApplyAsync(Assignment8::getNumbers)
                     .thenAcceptAsync(dto ->{
                         this.addNumbersToList(dto.stream().map(m -> m.intValue()).collect(Collectors.toList()));
-                    });
+                  });
+        }*/
 
-        }
+
     }
 
     private void addNumbersToList(List<Integer> number){
