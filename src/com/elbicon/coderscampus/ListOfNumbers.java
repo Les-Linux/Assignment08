@@ -1,38 +1,49 @@
 package com.elbicon.coderscampus;
 
+
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import static java.lang.Thread.sleep;
 
 public class ListOfNumbers {
     TaskDto taskDto = new TaskDto();
-    List<Integer> numbers = new ArrayList<>();
+    List<List<Integer>> numbers = new ArrayList<List<Integer>>();
     public void read() throws ExecutionException, InterruptedException {
-
-        ExecutorService executorServiceCPU = Executors.newFixedThreadPool(10);
+        ExecutorService executorServiceCPU = Executors.newFixedThreadPool(1);
         ExecutorService executorServiceIO = Executors.newCachedThreadPool();
         Assignment8 assignment8 = new Assignment8();
-
-        // ASSISTANCE NEEDED HERE
-        for (int i = 0; i < 10; i++) {
-/*        CompletableFuture<List<Integer>> cf = CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
-                .thenApplyAsync(Assignment8::getNumbers);*/
-            CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
+        CompletableFuture<List<Integer>> cf = null;
+        int count = 0;
+        int numbersMaxCount = 2;
+        for (int i = 0; i < numbersMaxCount; i++) {
+          count++;
+          CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
                     .thenApplyAsync(Assignment8::getNumbers)
-                    .get();
+                    .thenAcceptAsync(dto ->{
+                        this.addNumbersToList(dto.stream().map(m -> m.intValue()).collect(Collectors.toList()));
+                    });
+
         }
-        System.out.println("Done");
     }
 
-    private void addNumbersToList(Integer number){
-        numbers.add(number);
+    private void addNumbersToList(List<Integer> number){
+        number.stream().map(m -> m.intValue()).forEach(f -> {
+            synchronized (taskDto){
+                taskDto.setNumber(number.get(f.intValue()));
+            }
+        });
     }
-
+    private void outputToConsole(){
+        List<Integer> dtoNumbers = taskDto.getNumber();
+        Map<Integer, Long> counts =
+                dtoNumbers.stream().collect(Collectors.groupingBy(e -> e, Collectors.counting()));
+        System.out.println("Counts= " + counts);
+    }
 }
