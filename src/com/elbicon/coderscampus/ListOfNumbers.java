@@ -2,6 +2,9 @@ package com.elbicon.coderscampus;
 
 
 import javax.crypto.spec.PSource;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,56 +17,45 @@ import java.util.stream.Collectors;
 
 
 public class ListOfNumbers {
-    TaskDto taskDto = new TaskDto();
+    static TaskDto taskDto = new TaskDto();
     List<List<Integer>> numbers = new ArrayList<List<Integer>>();
 
-    public void read() throws ExecutionException, InterruptedException {
-        ExecutorService executorServiceCPU = Executors.newFixedThreadPool(10);
+    public void read() throws ExecutionException, InterruptedException, IOException {
+        ExecutorService executorServiceCPU = Executors.newFixedThreadPool(12);
         ExecutorService executorServiceIO = Executors.newCachedThreadPool();
 
         Assignment8 assignment8 = new Assignment8();
-        CompletableFuture<List<Integer>> cf = new CompletableFuture<>();
+        CompletableFuture<List<Integer>> completableFuture = new CompletableFuture<>();
+        List<CompletableFuture<List<Integer>>> cfTasks = new ArrayList<>();
         int numbersMaxCount = 1000;
 
         for (int i = 0; i < numbersMaxCount; i++) {
-            cf.supplyAsync(() -> assignment8, executorServiceCPU)
-                    .thenApplyAsync(Assignment8::getNumbers)
-                    .thenAcceptAsync(dto -> {
-                        this.addNumbersToList(dto.stream()
-                                .map(m -> m.intValue())
-                                .collect(Collectors.toList()));
-                    },executorServiceIO).join();
+            CompletableFuture cfTask =
+                    completableFuture.supplyAsync(() -> assignment8.getNumbers(), executorServiceCPU)
+                            .thenAcceptAsync(dto -> {
+                                dto.stream()
+                                        .forEach(f -> {
+                                            this.addNumbersToList(f.intValue()); //add numbers to list
+                                        });
+                            }, executorServiceCPU);
+            cfTasks.add(cfTask);
         }
-        outputToConsole();
-
-        // Further Reading Required on allOf as behaviour
-        // did not match expectations
-/*        for (int i = 0; i < numbersMaxCount; i++) {
-            CompletableFuture.allOf(
-                CompletableFuture.supplyAsync(() -> assignment8, executorServiceIO)
-                        .thenApplyAsync(Assignment8::getNumbers)
-                        .thenAcceptAsync(dto ->{
-                            this.addNumbersToList(dto.stream().map(m -> m.intValue()).collect(Collectors.toList()));
-                        })
-                ).join();
+        while (cfTasks.stream().filter(CompletableFuture::isDone).count() < numbersMaxCount) {
+            // await all asynch to complete
         }
-        outputToConsole();*/
+        outputToConsole(); //output results
     }
 
-    private void addNumbersToList(List<Integer> number) {
-        number.stream().map(m -> m.intValue()).forEach(f -> {
-            synchronized (taskDto) {
-                taskDto.setNumber(number.get(f.intValue()));
-            }
-        });
+    private void addNumbersToList(Integer number) {
+        synchronized (this) {
+            taskDto.setNumber(number); //update static list
+        }
     }
 
     private void outputToConsole() {
         List<Integer> dtoNumbers = taskDto.getNumber();
         Map<Integer, Long> counts =
                 dtoNumbers.stream().collect(Collectors.groupingBy(e -> e, Collectors.counting()));
-
-        //System.out.println(counts);
 
         for (Map.Entry<Integer, Long> entry : counts.entrySet()) {
             //System.out.println("Key=" + entry.getKey() + " Value=" + entry.getValue());
